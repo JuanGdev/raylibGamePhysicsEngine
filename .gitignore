@@ -1,0 +1,130 @@
+# Build directories
+build/
+bin/
+out/
+cmake-build-*/
+
+# CMake files
+CMakeCache.txt
+CMakeFiles/
+CMakeScripts/
+cmake_install.cmake
+install_manifest.txt
+compile_commands.json
+CTestTestfile.cmake
+_deps/
+
+# Generated files
+Makefile
+*.cmake
+!CMakeLists.txt
+
+# Executable files
+*.exe
+*.out
+*.app
+PhysicsGameEngine
+
+# Object files
+*.o
+*.obj
+*.so
+*.dll
+*.dylib
+*.a
+*.lib
+
+# Debug files
+*.pdb
+*.ilk
+*.map
+*.dSYM/
+
+# IDE files
+.vscode/
+.vs/
+*.vcxproj
+*.vcxproj.filters
+*.vcxproj.user
+*.sln
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+
+# Qt Creator
+CMakeLists.txt.user*
+
+# CLion
+.idea/
+
+# Code::Blocks
+*.cbp
+*.depend
+*.layout
+
+# Conan package manager
+conanfile.txt
+conanfile.py
+conandata.yml
+conanbuildinfo.*
+conan.lock
+
+# vcpkg
+vcpkg_installed/
+
+# Package managers
+_deps/
+external/*/
+
+# Logs
+*.log
+
+# Temporary files
+*.tmp
+*.temp
+*~
+.DS_Store
+Thumbs.db
+
+# OS specific
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Backup files
+*.bak
+*.backup
+*.orig
+
+# Profiling
+*.prof
+gmon.out
+callgrind.out.*
+
+# Test coverage
+*.gcov
+*.gcda
+*.gcno
+coverage/
+
+# Documentation build
+docs/build/
+doc/build/
+
+# Assets (uncomment if you don't want to track large assets)
+# assets/*.png
+# assets/*.jpg
+# assets/*.mp3
+# assets/*.wav
+# assets/*.obj
+# assets/*.fbx
+
+# Configuration files that might contain sensitive data
+config.ini
+settings.json
+secrets.*
