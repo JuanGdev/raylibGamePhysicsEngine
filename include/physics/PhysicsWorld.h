@@ -28,6 +28,7 @@ class PhysicsWorld {
 private:
     Vector3 gravity;
     float deltaTime;
+    int groundedFrameStability;  // Número de frames para mantener el estado isGrounded
     
 public:
     PhysicsWorld(Vector3 grav = {0.0f, -9.81f, 0.0f});
@@ -38,10 +39,18 @@ public:
     void ApplyGravity(PhysicsBody& body);
     void UpdatePhysicsBody(PhysicsBody& body);
     
-    // Collision detection
+    // Collision detection - métodos originales para compatibilidad
     bool CheckCollision(const Collider& a, const Collider& b);
     bool CheckCollisionAABB(Vector3 posA, Vector3 sizeA, Vector3 posB, Vector3 sizeB);
+    
+    // Nuevos métodos de colisión basados en BoundingBox de raylib
+    BoundingBox GetBoundingBox(const Vector3& position, const Vector3& size);
+    bool CheckCollisionBoxes(const PhysicsBody& bodyA, const PhysicsBody& bodyB);
+    bool CheckCollisionBoxFloor(const PhysicsBody& body, const Collider& floor, float* penetrationDepth = nullptr);
+    
+    // Resolución de colisiones
     void ResolveCollision(PhysicsBody& body, const Collider& staticCollider);
+    void ResolveCubeCollision(PhysicsBody& bodyA, PhysicsBody& bodyB);
     
     // Getters/Setters
     void SetGravity(Vector3 grav) { gravity = grav; }

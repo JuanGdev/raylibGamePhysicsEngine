@@ -6,7 +6,7 @@
 Engine::Engine(int width, int height, const char* windowTitle) 
     : screenWidth(width), screenHeight(height), title(windowTitle), running(false),
       cube({0.0f, 5.0f, 0.0f}, {0.0f, 0.0f, 0.0f}, {2.0f, 2.0f, 2.0f}, RED, true),
-      floor({0.0f, -1.0f, 0.0f}, {0.0f, 0.0f, 0.0f}, {40.0f, 2.0f, 40.0f}, LIGHTGRAY, false),
+      floor({0.0f, -0.05f, 0.0f}, {0.0f, 0.0f, 0.0f}, {40.0f, 0.1f, 40.0f}, LIGHTGRAY, false),
       cameraOffset({4.0f, 4.0f, 4.0f}) {
     
     // Initialize with one additional cube (the blue one)
@@ -44,8 +44,8 @@ bool Engine::Initialize() {
         otherCube.EnableCollider(cubeScale);
     }
     
-    // Setup floor collider
-    floor.EnableCollider({40.0f, 2.0f, 40.0f});
+    // Setup floor collider - make sure it matches the visual size
+    floor.EnableCollider({40.0f, 0.1f, 40.0f});
     
     // Setup UI messages
     uiMessages = {
@@ -136,54 +136,42 @@ void Engine::Update() {
         cube.SetColor(colors[colorIndex]);
     }
 
-    // Update physics for both cubes
-    if (cube.HasPhysics()) {
-        // First update physics (applies gravity and movement)
-        physicsWorld.UpdatePhysicsBody(*cube.GetPhysicsBody());
-        cube.UpdateFromPhysics();
-        
-        // Check collision with floor
-        if (cube.GetCollider() && floor.GetCollider()) {
-            if (physicsWorld.CheckCollision(*cube.GetCollider(), *floor.GetCollider())) {
-                physicsWorld.ResolveCollision(*cube.GetPhysicsBody(), *floor.GetCollider());
-                cube.UpdateFromPhysics();
-            }
-        }
-    }
-    
-    // Update physics for player cube
+    // STEP 1: Update physics for ALL objects first
+    // Note: The isGrounded state is preserved from previous frame at this point
     if (cube.HasPhysics()) {
         physicsWorld.UpdatePhysicsBody(*cube.GetPhysicsBody());
         cube.UpdateFromPhysics();
-        
-        // Check collision with floor
-        if (cube.GetCollider() && floor.GetCollider()) {
-            if (physicsWorld.CheckCollision(*cube.GetCollider(), *floor.GetCollider())) {
-                physicsWorld.ResolveCollision(*cube.GetPhysicsBody(), *floor.GetCollider());
-                cube.UpdateFromPhysics();
-            }
-        }
     }
     
-    // Update physics for all other cubes
     for (auto& otherCube : otherCubes) {
         if (otherCube.HasPhysics()) {
             physicsWorld.UpdatePhysicsBody(*otherCube.GetPhysicsBody());
             otherCube.UpdateFromPhysics();
-            
-            // Check collision with floor
-            if (otherCube.GetCollider() && floor.GetCollider()) {
-                if (physicsWorld.CheckCollision(*otherCube.GetCollider(), *floor.GetCollider())) {
-                    physicsWorld.ResolveCollision(*otherCube.GetPhysicsBody(), *floor.GetCollider());
-                    otherCube.UpdateFromPhysics();
-                }
+        }
+    }
+    
+    // STEP 2: Resolve floor collisions for all objects
+    if (cube.HasPhysics() && cube.GetCollider() && floor.GetCollider()) {
+        if (physicsWorld.CheckCollision(*cube.GetCollider(), *floor.GetCollider())) {
+            physicsWorld.ResolveCollision(*cube.GetPhysicsBody(), *floor.GetCollider());
+            cube.UpdateFromPhysics();
+        }
+    }
+    
+    for (auto& otherCube : otherCubes) {
+        if (otherCube.HasPhysics() && otherCube.GetCollider() && floor.GetCollider()) {
+            if (physicsWorld.CheckCollision(*otherCube.GetCollider(), *floor.GetCollider())) {
+                physicsWorld.ResolveCollision(*otherCube.GetPhysicsBody(), *floor.GetCollider());
+                otherCube.UpdateFromPhysics();
             }
-            
-            // Check collision with player cube
-            if (cube.GetCollider() && otherCube.GetCollider()) {
-                if (physicsWorld.CheckCollision(*cube.GetCollider(), *otherCube.GetCollider())) {
-                    ResolveCubeToCubeCollision(cube, otherCube);
-                }
+        }
+    }
+    
+    // STEP 3: Resolve cube-to-cube collisions
+    for (auto& otherCube : otherCubes) {
+        if (cube.GetCollider() && otherCube.GetCollider()) {
+            if (physicsWorld.CheckCollision(*cube.GetCollider(), *otherCube.GetCollider())) {
+                ResolveCubeToCubeCollision(cube, otherCube);
             }
         }
     }
@@ -348,48 +336,10 @@ void Engine::ResolveCubeToCubeCollision(GameObject& cube1, GameObject& cube2) {
     
     if (!body1 || !body2) return;
     
-    // Calculate collision normal (direction from cube1 to cube2)
-    Vector3 normal = Vector3Subtract(body2->position, body1->position);
-    float distance = Vector3Length(normal);
+    // Usar el nuevo sistema de detección y resolución de colisiones
+    physicsWorld.ResolveCubeCollision(*body1, *body2);
     
-    if (distance > 0) {
-        normal = Vector3Scale(normal, 1.0f / distance);  // Normalize
-        
-        // Calculate relative velocity
-        Vector3 relativeVelocity = Vector3Subtract(body2->velocity, body1->velocity);
-        
-        // Calculate relative velocity along normal
-        float velocityAlongNormal = Vector3DotProduct(relativeVelocity, normal);
-        
-        // Do not resolve if velocities are separating
-        if (velocityAlongNormal > 0) return;
-        
-        // Calculate restitution (bounciness)
-        float restitution = 0.6f;
-        
-        // Calculate impulse scalar
-        float impulseScalar = -(1 + restitution) * velocityAlongNormal;
-        impulseScalar /= (1.0f / body1->mass + 1.0f / body2->mass);
-        
-        // Apply impulse
-        Vector3 impulse = Vector3Scale(normal, impulseScalar);
-        
-        body1->velocity = Vector3Subtract(body1->velocity, Vector3Scale(impulse, 1.0f / body1->mass));
-        body2->velocity = Vector3Add(body2->velocity, Vector3Scale(impulse, 1.0f / body2->mass));
-        
-        // Separate the cubes to prevent overlap
-        Vector3 halfSize1 = Vector3Scale(body1->colliderSize, 0.5f);
-        Vector3 halfSize2 = Vector3Scale(body2->colliderSize, 0.5f);
-        float minSeparation = Vector3Length(halfSize1) + Vector3Length(halfSize2);
-        
-        if (distance < minSeparation) {
-            Vector3 separation = Vector3Scale(normal, (minSeparation - distance + 0.01f) * 0.5f);
-            body1->position = Vector3Subtract(body1->position, separation);
-            body2->position = Vector3Add(body2->position, separation);
-        }
-        
-        // Update GameObjects from physics
-        cube1.UpdateFromPhysics();
-        cube2.UpdateFromPhysics();
-    }
+    // Actualizar las posiciones de los GameObjects desde su física
+    cube1.UpdateFromPhysics();
+    cube2.UpdateFromPhysics();
 }
