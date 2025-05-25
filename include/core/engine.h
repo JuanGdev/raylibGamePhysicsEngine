@@ -3,6 +3,7 @@
 #include "core/GameObject.h"
 #include "rendering/Renderer.h"
 #include "physics/PhysicsWorld.h"
+#include "ui/DebugUI.h"
 #include <vector>
 #include <string>
 
@@ -17,9 +18,11 @@ private:
     Camera3D camera;
     Renderer renderer;
     PhysicsWorld physicsWorld;
+    DebugUI debugUI;
     
     // Game objects
     GameObject cube;
+    GameObject cube2;
     GameObject floor;
     Vector3 cameraOffset;
     
@@ -27,7 +30,7 @@ private:
     std::vector<std::string> uiMessages;
 
 public:
-    Engine(int width = 800, int height = 600, const char* windowTitle = "Physics Engine Project");
+    Engine(int width = 1920, int height = 1080, const char* windowTitle = "Physics Engine Project");
     ~Engine();
     
     bool Initialize();

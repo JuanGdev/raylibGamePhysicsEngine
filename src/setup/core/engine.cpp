@@ -5,7 +5,8 @@
 Engine::Engine(int width, int height, const char* windowTitle) 
     : screenWidth(width), screenHeight(height), title(windowTitle), running(false),
       cube({0.0f, 5.0f, 0.0f}, {0.0f, 0.0f, 0.0f}, {2.0f, 2.0f, 2.0f}, RED, true),
-      floor({0.0f, -1.0f, 0.0f}, {0.0f, 0.0f, 0.0f}, {20.0f, 2.0f, 20.0f}, LIGHTGRAY, false),
+      cube2({4.0f, 8.0f, 2.0f}, {0.0f, 0.0f, 0.0f}, {1.5f, 1.5f, 1.5f}, BLUE, true),
+      floor({0.0f, 0.0f, 0.0f}, {0.0f, 0.0f, 0.0f}, {40.0f, 2.0f, 40.0f}, LIGHTGRAY, false),
       cameraOffset({4.0f, 4.0f, 4.0f}) {
 }
 
@@ -32,15 +33,24 @@ bool Engine::Initialize() {
     cube.EnablePhysics(1.0f);
     cube.EnableCollider({2.0f, 2.0f, 2.0f});
     
+    // Setup physics for second cube
+    cube2.EnablePhysics(0.8f);  // Slightly lighter
+    cube2.EnableCollider({1.5f, 1.5f, 1.5f});
+    
     // Setup floor collider
-    floor.EnableCollider({20.0f, 2.0f, 20.0f});
+    floor.EnableCollider({40.0f, 2.0f, 40.0f});
     
     // Setup UI messages
     uiMessages = {
-        "Physics Engine 3D - Press ESC to exit",
-        "WASD: Move | SPACE: Jump | C: Color | R: Reset",
-        "LEFT/RIGHT: Orbit | UP/DOWN: Camera Height"
+        "Physics Engine 3D - Two Cubes Collision Demo",
+        "RED CUBE: WASD: Move | SPACE: Jump | IJKL+UO: Rotate | ZX: Scale",
+        "BLUE CUBE: Arrow Keys: Move | ENTER: Jump",
+        "CAMERA: Q/E: Orbit | T/G: Height | C: Color | R: Reset",
+        "Press F1 to toggle debug window"
     };
+    
+    // Initialize debug UI
+    debugUI.Initialize();
     
     running = true;
     std::cout << "Engine initialized successfully" << std::endl;
@@ -65,6 +75,9 @@ void Engine::Run() {
 void Engine::Update() {
     float deltaTime = GetFrameTime();
     
+    // Update debug UI first
+    debugUI.Update();
+    
     // Game logic update here
     if (IsKeyPressed(KEY_ESCAPE)) {
         running = false;
@@ -86,9 +99,24 @@ void Engine::Update() {
         cube.AddForce(movement);
     }
     
-    // Jump control
+    // Second cube movement controls (Arrow keys)
+    Vector3 movement2 = {0.0f, 0.0f, 0.0f};
+    
+    if (IsKeyDown(KEY_UP)) movement2.z -= moveSpeed;
+    if (IsKeyDown(KEY_DOWN)) movement2.z += moveSpeed;
+    if (IsKeyDown(KEY_LEFT)) movement2.x -= moveSpeed;
+    if (IsKeyDown(KEY_RIGHT)) movement2.x += moveSpeed;
+    
+    if (Vector3Length(movement2) > 0) {
+        cube2.AddForce(movement2);
+    }
+    
+    // Jump controls
     if (IsKeyPressed(KEY_SPACE)) {
-        cube.Jump(8.0f); // Jump force
+        cube.Jump(8.0f); // Jump force for cube 1
+    }
+    if (IsKeyPressed(KEY_ENTER)) {
+        cube2.Jump(8.0f); // Jump force for cube 2
     }
     
     // Cube rotation controls
@@ -111,20 +139,40 @@ void Engine::Update() {
         cube.SetColor(colors[colorIndex]);
     }
 
-    // Update physics for cube
+    // Update physics for both cubes
     if (cube.HasPhysics()) {
         // First update physics (applies gravity and movement)
         physicsWorld.UpdatePhysicsBody(*cube.GetPhysicsBody());
-        
-        // Update object position from physics
         cube.UpdateFromPhysics();
         
-        // Then check collision with floor after position update
+        // Check collision with floor
         if (cube.GetCollider() && floor.GetCollider()) {
             if (physicsWorld.CheckCollision(*cube.GetCollider(), *floor.GetCollider())) {
                 physicsWorld.ResolveCollision(*cube.GetPhysicsBody(), *floor.GetCollider());
-                // Update position again after collision resolution
                 cube.UpdateFromPhysics();
+            }
+        }
+    }
+    
+    if (cube2.HasPhysics()) {
+        // Update physics for second cube
+        physicsWorld.UpdatePhysicsBody(*cube2.GetPhysicsBody());
+        cube2.UpdateFromPhysics();
+        
+        // Check collision with floor
+        if (cube2.GetCollider() && floor.GetCollider()) {
+            if (physicsWorld.CheckCollision(*cube2.GetCollider(), *floor.GetCollider())) {
+                physicsWorld.ResolveCollision(*cube2.GetPhysicsBody(), *floor.GetCollider());
+                cube2.UpdateFromPhysics();
+            }
+        }
+        
+        // Check collision between cubes
+        if (cube.GetCollider() && cube2.GetCollider()) {
+            if (physicsWorld.CheckCollision(*cube.GetCollider(), *cube2.GetCollider())) {
+                // For cube-to-cube collision, we need a more sophisticated approach
+                // For now, let's implement a simple elastic collision
+                // ResolveCubeToCubeCollision(cube, cube2); // TODO: Implement this function
             }
         }
     }
@@ -135,9 +183,9 @@ void Engine::Update() {
     camera.target = cubePos; // La cámara siempre mira al cubo
     camera.position = Vector3Add(cubePos, cameraOffset); // Posición relativa al cubo
     
-    // Camera controls - opcional para orbitar alrededor del cubo
-    if (IsKeyDown(KEY_LEFT)) {
-        // Rotar cameraOffset alrededor del eje Y
+    // Camera controls - orbitar alrededor del cubo
+    if (IsKeyDown(KEY_Q)) {
+        // Rotar cameraOffset alrededor del eje Y (izquierda)
         float angle = -0.05f;
         float newX = cameraOffset.x * cosf(angle) - cameraOffset.z * sinf(angle);
         float newZ = cameraOffset.x * sinf(angle) + cameraOffset.z * cosf(angle);
@@ -145,8 +193,8 @@ void Engine::Update() {
         cameraOffset.z = newZ;
         camera.position = Vector3Add(cubePos, cameraOffset);
     }
-    if (IsKeyDown(KEY_RIGHT)) {
-        // Rotar cameraOffset alrededor del eje Y
+    if (IsKeyDown(KEY_E)) {
+        // Rotar cameraOffset alrededor del eje Y (derecha)
         float angle = 0.05f;
         float newX = cameraOffset.x * cosf(angle) - cameraOffset.z * sinf(angle);
         float newZ = cameraOffset.x * sinf(angle) + cameraOffset.z * cosf(angle);
@@ -156,67 +204,78 @@ void Engine::Update() {
     }
     
     // Camera vertical controls
-    if (IsKeyDown(KEY_UP)) {
+    if (IsKeyDown(KEY_T)) {
         cameraOffset.y += 0.1f; // Mover cámara hacia arriba
         camera.position = Vector3Add(cubePos, cameraOffset);
     }
-    if (IsKeyDown(KEY_DOWN)) {
+    if (IsKeyDown(KEY_G)) {
         cameraOffset.y -= 0.1f; // Mover cámara hacia abajo
         camera.position = Vector3Add(cubePos, cameraOffset);
     }
 
-    // Reset cube
+    // Reset cubes
     if (IsKeyPressed(KEY_R)) {
+        // Reset first cube (red)
         cube.SetPosition({0.0f, 5.0f, 0.0f});
         cube.SetRotation({0.0f, 0.0f, 0.0f});
         cube.SetScale({2.0f, 2.0f, 2.0f});
         cube.SetColor(RED);
         cube.SetVelocity({0.0f, 0.0f, 0.0f});
+        
+        // Reset second cube (blue)
+        cube2.SetPosition({4.0f, 8.0f, 2.0f});
+        cube2.SetRotation({0.0f, 0.0f, 0.0f});
+        cube2.SetScale({1.5f, 1.5f, 1.5f});
+        cube2.SetColor(BLUE);
+        cube2.SetVelocity({0.0f, 0.0f, 0.0f});
+        
         cameraOffset = {4.0f, 4.0f, 4.0f}; // Reset camera offset
         Initialize3D();
     }
 }
 
 void Engine::Render() {
-    // Use the new Renderer module
-    renderer.BeginFrame();
+    // Start drawing frame
+    BeginDrawing();
+    ClearBackground(RAYWHITE);
+    
+    // 3D rendering
+    BeginMode3D(camera);
     
     // Render game objects
     renderer.RenderGameObject(cube);
-    renderer.RenderFloor(floor.GetPosition(), {20.0f, 0.1f, 20.0f}, GRAY);
+    renderer.RenderGameObject(cube2);
+    renderer.RenderFloor(floor.GetPosition(), {40.0f, 0.1f, 40.0f}, GRAY);
     
     // Render debug colliders if available
     if (cube.GetCollider()) {
-        Vector3 colliderSize = {2.0f, 2.0f, 2.0f}; // Cube size
+        Vector3 colliderSize = cube.GetScale(); // Use scale as collider size
         renderer.RenderCollider(cube.GetPosition(), colliderSize, GREEN);
     }
+    if (cube2.GetCollider()) {
+        Vector3 colliderSize2 = cube2.GetScale(); // Use scale as collider size
+        renderer.RenderCollider(cube2.GetPosition(), colliderSize2, YELLOW);
+    }
     if (floor.GetCollider()) {
-        Vector3 floorColliderSize = {20.0f, 0.1f, 20.0f}; // Floor size
+        Vector3 floorColliderSize = {40.0f, 0.1f, 40.0f}; // Floor size
         renderer.RenderCollider(floor.GetPosition(), floorColliderSize, BLUE);
     }
     
-    // Render grid
-    renderer.RenderGrid(20, 1.0f);
+    // Render grid aligned with floor (40x40 grid with 1.0f spacing)
+    renderer.RenderGrid(40, 1.0f);
     
-    renderer.EndFrame();
-
-    // 2D UI overlay (drawn after EndFrame to be on top)
-    DrawText("Physics Engine 3D - Press ESC to exit", 10, 10, 20, DARKGRAY);
-    DrawText("WASD: Force Movement | SPACE: Jump | IJKL+UO: Rotate | ZX: Scale", 10, 30, 16, GRAY);
-    DrawText("LEFT/RIGHT: Orbit camera | UP/DOWN: Camera height | C: Color | R: Reset", 10, 50, 16, GRAY);
+    // End 3D mode
+    EndMode3D();
     
-    // Physics debug info
-    Vector3 cubePos = cube.GetPosition();
-    Vector3 cubeVel = cube.GetVelocity();
-    DrawText(TextFormat("Position: (%.2f, %.2f, %.2f)", cubePos.x, cubePos.y, cubePos.z), 10, 80, 16, DARKGREEN);
-    DrawText(TextFormat("Velocity: (%.2f, %.2f, %.2f)", cubeVel.x, cubeVel.y, cubeVel.z), 10, 100, 16, DARKGREEN);
+    // 2D UI overlay (rendered after 3D content but within the same drawing frame)
+    DrawText("Physics Engine 3D", 10, 10, 20, DARKGRAY);
+    DrawText("Press F1 for debug info | ESC to exit", 10, 35, 14, GRAY);
     
-    if (cube.HasPhysics() && cube.GetPhysicsBody()) {
-        bool grounded = cube.GetPhysicsBody()->isGrounded;
-        DrawText(TextFormat("Grounded: %s", grounded ? "YES" : "NO"), 10, 120, 16, grounded ? GREEN : RED);
-    }
+    // Render debug UI (also 2D overlay)
+    debugUI.Render(cube, cube2, uiMessages);
     
-    DrawFPS(10, screenHeight - 30);
+    // End the drawing frame
+    EndDrawing();
 }
 
 void Engine::Shutdown() {
