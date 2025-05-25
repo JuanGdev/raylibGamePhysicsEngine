@@ -187,6 +187,58 @@ void Engine::Update() {
         }
     }
     
+    // STEP 4: Verify if bodies are actually supported
+    if (cube.HasPhysics() && cube.GetPhysicsBody()->isGrounded) {
+        // Recopilar todos los colisionadores estáticos (solo el suelo en este caso)
+        std::vector<Collider*> staticColliders;
+        if (floor.GetCollider()) {
+            staticColliders.push_back(floor.GetCollider());
+        }
+        
+        // Recopilar todos los cuerpos dinámicos (otros cubos)
+        std::vector<PhysicsBody*> dynamicBodies;
+        for (auto& otherCube : otherCubes) {
+            if (otherCube.HasPhysics()) {
+                dynamicBodies.push_back(otherCube.GetPhysicsBody());
+            }
+        }
+        
+        // Verificar si realmente está apoyado
+        if (!physicsWorld.IsBodySupported(*cube.GetPhysicsBody(), staticColliders, dynamicBodies)) {
+            // Si no está apoyado, desactivar el estado grounded
+            cube.GetPhysicsBody()->isGrounded = false;
+        }
+    }
+    
+    // También verificar para los otros cubos
+    for (auto& otherCube : otherCubes) {
+        if (otherCube.HasPhysics() && otherCube.GetPhysicsBody()->isGrounded) {
+            // Recopilar colisionadores estáticos
+            std::vector<Collider*> staticColliders;
+            if (floor.GetCollider()) {
+                staticColliders.push_back(floor.GetCollider());
+            }
+            
+            // Recopilar todos los cuerpos dinámicos (excluyendo el propio)
+            std::vector<PhysicsBody*> dynamicBodies;
+            if (cube.HasPhysics()) {
+                dynamicBodies.push_back(cube.GetPhysicsBody());
+            }
+            
+            for (auto& otherCube2 : otherCubes) {
+                if (&otherCube2 != &otherCube && otherCube2.HasPhysics()) {
+                    dynamicBodies.push_back(otherCube2.GetPhysicsBody());
+                }
+            }
+            
+            // Verificar si realmente está apoyado
+            if (!physicsWorld.IsBodySupported(*otherCube.GetPhysicsBody(), staticColliders, dynamicBodies)) {
+                // Si no está apoyado, desactivar el estado grounded
+                otherCube.GetPhysicsBody()->isGrounded = false;
+            }
+        }
+    }
+    
     // Update camera to follow cube
     Vector3 cubePos = cube.GetPosition();
     

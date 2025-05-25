@@ -1,5 +1,6 @@
 #pragma once
 #include "raylib.h"
+#include <vector>
 
 struct PhysicsBody {
     Vector3 position;
@@ -38,6 +39,7 @@ public:
     void Update(float dt);
     void ApplyGravity(PhysicsBody& body);
     void UpdatePhysicsBody(PhysicsBody& body);
+    bool IsBodySupported(const PhysicsBody& body, const std::vector<Collider*>& staticColliders, const std::vector<PhysicsBody*>& dynamicBodies);
     
     // Collision detection - métodos originales para compatibilidad
     bool CheckCollision(const Collider& a, const Collider& b);

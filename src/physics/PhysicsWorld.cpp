@@ -56,12 +56,17 @@ void PhysicsWorld::UpdatePhysicsBody(PhysicsBody& body) {
     // Reset acceleration for next frame
     body.acceleration = {0.0f, 0.0f, 0.0f};
     
-    // Note: We don't reset isGrounded here anymore - it will be updated by collision checks
-    // pero mantendremos el estado grounded durante algunos frames para estabilidad
-    if (!wasGrounded) {
-        // Si acabamos de perder el estado grounded, lo reseteamos
+    // Si el cuerpo estaba en el suelo pero está cayendo ahora (posiblemente se salió del borde),
+    // debemos asegurarnos de que isGrounded se actualice
+    if (wasGrounded && body.velocity.y < -0.1f) {
         body.isGrounded = false;
     }
+    // Si el cuerpo no estaba en el suelo, mantenemos el estado
+    else if (!wasGrounded) {
+        body.isGrounded = false;
+    }
+    // Si estaba en el suelo y no está cayendo, mantenemos el estado (podría ser actualizado
+    // por las verificaciones de soporte más adelante)
 }
 
 bool PhysicsWorld::CheckCollision(const Collider& a, const Collider& b) {
@@ -445,4 +450,53 @@ void PhysicsWorld::ResolveCubeCollision(PhysicsBody& bodyA, PhysicsBody& bodyB) 
         bodyA.position = Vector3Subtract(bodyA.position, Vector3Scale(separation, ratioA));
         bodyB.position = Vector3Add(bodyB.position, Vector3Scale(separation, ratioB));
     }
+}
+
+// Función para verificar si un cuerpo está realmente apoyado
+// Esto evita que el objeto pueda "flotar" cuando se sale del borde de un cubo
+bool PhysicsWorld::IsBodySupported(const PhysicsBody& body, const std::vector<Collider*>& staticColliders, const std::vector<PhysicsBody*>& dynamicBodies) {
+    // Si el cuerpo no está marcado como grounded, no hay necesidad de verificar
+    if (!body.isGrounded) {
+        return false;
+    }
+    
+    // Crear un collider de prueba un poco por debajo del cuerpo para verificar si hay algo debajo
+    // Este collider tiene un tamaño más pequeño para verificar el centro del cuerpo
+    const float supportCheckDistance = 0.05f; // Pequeña distancia para verificar
+    const float supportSizeReduction = 0.5f; // Reducir el tamaño horizontal para verificar solo el centro
+    
+    Vector3 checkPosition = body.position;
+    checkPosition.y -= (body.colliderSize.y * 0.5f + supportCheckDistance);
+    
+    // Crear un collider de prueba más pequeño para verificar soporte
+    Vector3 checkSize = {
+        body.colliderSize.x * supportSizeReduction, 
+        0.01f, // Altura mínima para el collider de prueba
+        body.colliderSize.z * supportSizeReduction
+    };
+    
+    Collider supportCheck(checkPosition, checkSize);
+    
+    // Verificar colisiones con colisionadores estáticos (como el suelo)
+    for (const auto& staticCollider : staticColliders) {
+        if (CheckCollision(supportCheck, *staticCollider)) {
+            return true;
+        }
+    }
+    
+    // Verificar colisiones con otros cuerpos dinámicos
+    for (const auto& otherBody : dynamicBodies) {
+        // No comprobamos contra nosotros mismos
+        if (otherBody == &body) continue;
+        
+        // Crear un colisionador temporal para el otro cuerpo
+        Collider otherCollider(otherBody->position, otherBody->colliderSize);
+        
+        if (CheckCollision(supportCheck, otherCollider)) {
+            return true;
+        }
+    }
+    
+    // Si llegamos hasta aquí, el cuerpo no está realmente apoyado en nada
+    return false;
 }
