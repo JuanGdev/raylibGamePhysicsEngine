@@ -2,8 +2,10 @@
 #include "raymath.h"
 #include <algorithm>
 
-PhysicsWorld::PhysicsWorld(Vector3 grav) : gravity(grav), deltaTime(0.0f), groundedFrameStability(3) {
-    // Inicializamos con 3 frames de estabilidad para el estado grounded
+PhysicsWorld::PhysicsWorld(Vector3 grav) 
+    : gravity(grav), deltaTime(0.0f), groundedFrameStability(3),
+      restitution(0.3f), friction(0.92f), airResistance(0.98f), velocityThreshold(0.005f) {
+    // Inicializamos con valores predeterminados
 }
 
 PhysicsWorld::~PhysicsWorld() {
@@ -499,4 +501,57 @@ bool PhysicsWorld::IsBodySupported(const PhysicsBody& body, const std::vector<Co
     
     // Si llegamos hasta aquí, el cuerpo no está realmente apoyado en nada
     return false;
+}
+
+Vector3 PhysicsWorld::CalculateParabolicVelocity(float initialSpeed, float angleDegrees, bool applyToY) {
+    float angleRadians = angleDegrees * DEG2RAD;
+    
+    // La velocidad en componentes
+    Vector3 velocity = {0};
+    
+    // Por defecto se aplica en el plano Y-Z (como un tiro parabólico estándar)
+    if (applyToY) {
+        velocity.y = initialSpeed * sinf(angleRadians);
+        velocity.z = initialSpeed * cosf(angleRadians);
+    } else {
+        // Si no se aplica a Y, asumimos que es en el plano X-Z
+        velocity.x = initialSpeed * sinf(angleRadians);
+        velocity.z = initialSpeed * cosf(angleRadians);
+    }
+    
+    return velocity;
+}
+
+void PhysicsWorld::LaunchObject(PhysicsBody& body, float initialSpeed, float angleDegrees, Vector3 direction) {
+    // Normalizar la dirección
+    direction = Vector3Normalize(direction);
+    
+    // Calcular la velocidad parabólica base
+    Vector3 baseVelocity = CalculateParabolicVelocity(initialSpeed, angleDegrees, true);
+    
+    // Si la dirección es diferente al eje Z, rotamos el vector de velocidad
+    if (fabsf(direction.z - 1.0f) > 0.001f) {
+        // Creamos un vector 3D a partir de la velocidad parabólica
+        Vector3 launchVelocity = {0};
+        
+        // Extraemos componente horizontal y vertical
+        float horizontalSpeed = baseVelocity.z;  // Componente horizontal (originalmente en Z)
+        float verticalSpeed = baseVelocity.y;    // Componente vertical (en Y)
+        
+        // Distribuimos la componente horizontal según la dirección
+        launchVelocity.x = horizontalSpeed * direction.x;
+        launchVelocity.z = horizontalSpeed * direction.z;
+        
+        // La componente vertical siempre es en Y
+        launchVelocity.y = verticalSpeed;
+        
+        // Aplicamos la velocidad al cuerpo
+        body.velocity = launchVelocity;
+    } else {
+        // Si la dirección es el eje Z, usamos directamente la velocidad base
+        body.velocity = baseVelocity;
+    }
+    
+    // Asegurarnos de que el objeto no esté marcado como "en suelo"
+    body.isGrounded = false;
 }

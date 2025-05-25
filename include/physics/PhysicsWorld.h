@@ -31,6 +31,12 @@ private:
     float deltaTime;
     int groundedFrameStability;  // Número de frames para mantener el estado isGrounded
     
+    // Parámetros de física
+    float restitution;          // Coeficiente de rebote (0.0 - 1.0)
+    float friction;             // Fricción de superficie (0.0 - 1.0)
+    float airResistance;        // Resistencia del aire (0.8 - 1.0)
+    float velocityThreshold;    // Umbral para velocidades pequeñas
+    
 public:
     PhysicsWorld(Vector3 grav = {0.0f, -9.81f, 0.0f});
     ~PhysicsWorld();
@@ -57,4 +63,24 @@ public:
     // Getters/Setters
     void SetGravity(Vector3 grav) { gravity = grav; }
     Vector3 GetGravity() const { return gravity; }
+    
+    // Nuevos getters/setters para los parámetros físicos
+    void SetRestitution(float value) { restitution = value; }
+    float GetRestitution() const { return restitution; }
+    
+    void SetFriction(float value) { friction = value; }
+    float GetFriction() const { return friction; }
+    
+    void SetAirResistance(float value) { airResistance = value; }
+    float GetAirResistance() const { return airResistance; }
+    
+    void SetGroundedStability(int frames) { groundedFrameStability = frames; }
+    int GetGroundedStability() const { return groundedFrameStability; }
+    
+    void SetVelocityThreshold(float threshold) { velocityThreshold = threshold; }
+    float GetVelocityThreshold() const { return velocityThreshold; }
+    
+    // Métodos para fenómenos físicos específicos
+    Vector3 CalculateParabolicVelocity(float initialSpeed, float angleDegrees, bool applyToY = true);
+    void LaunchObject(PhysicsBody& body, float initialSpeed, float angleDegrees, Vector3 direction = {0.0f, 0.0f, 1.0f});
 };

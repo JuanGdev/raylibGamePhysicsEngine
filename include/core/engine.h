@@ -4,6 +4,7 @@
 #include "rendering/Renderer.h"
 #include "physics/PhysicsWorld.h"
 #include "ui/DebugUI.h"
+#include "ui/PhysicsUI.h"
 #include <vector>
 #include <string>
 
@@ -19,6 +20,7 @@ private:
     Renderer renderer;
     PhysicsWorld physicsWorld;
     DebugUI debugUI;
+    PhysicsUI physicsUI;
     
     // Game objects
     GameObject cube;        // Red cube - player controlled

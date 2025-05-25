@@ -53,11 +53,12 @@ bool Engine::Initialize() {
         "WHITE CUBE: WASD: Move | SPACE: Jump | IJKL+UO: Rotate | ZX: Scale",
         "OTHER CUBES: Physics only - no manual control",
         "CAMERA: Q/E: Orbit | T/G: Height | C: Color | R: Reset",
-        "Press N to spawn new cube | F1 to toggle debug window | A to toggle axis gizmos"
+        "Press N to spawn new cube | P to launch cube | F1 for debug | F2 for physics panel | A to toggle gizmos"
     };
     
-    // Initialize debug UI
+    // Initialize debug UI and physics UI
     debugUI.Initialize();
+    physicsUI.Initialize();
     
     running = true;
     std::cout << "Engine initialized successfully" << std::endl;
@@ -82,8 +83,12 @@ void Engine::Run() {
 void Engine::Update() {
     float deltaTime = GetFrameTime();
     
-    // Update debug UI first
+    // Update UIs first
     debugUI.Update();
+    physicsUI.Update(physicsWorld);
+    
+    // Aplicar los parámetros de la UI al mundo físico
+    physicsUI.ApplyParameters(physicsWorld);
     
     // Game logic update here
     if (IsKeyPressed(KEY_ESCAPE)) {
@@ -91,10 +96,35 @@ void Engine::Update() {
     }
     
     // Toggle axis gizmos with the 'A' key
-    if (IsKeyPressed(KEY_P)) {
+    if (IsKeyPressed(KEY_A)) {
         static bool showAxisGizmos = true;  // Empezamos con los gizmos activados
         showAxisGizmos = !showAxisGizmos;   // Invertir el estado
         renderer.SetShowAxisGizmos(showAxisGizmos);
+    }
+    
+    // Launch the red cube with P key using parabolic trajectory
+    if (IsKeyPressed(KEY_P)) {
+        // Obtener los parámetros de lanzamiento desde la UI
+        float launchVelocity = physicsUI.GetLaunchVelocity();
+        float launchAngle = physicsUI.GetLaunchAngle();
+        
+        // Calcular dirección de lanzamiento relativa a la cámara
+        // Para que el lanzamiento sea en la dirección que está mirando el jugador
+        Vector3 cameraForward = Vector3Normalize(Vector3Subtract(camera.target, camera.position));
+        cameraForward.y = 0.0f; // Mantener el lanzamiento en el plano horizontal
+        
+        // Si el vector es aproximadamente cero (cámara mirando directamente hacia arriba/abajo)
+        // establecer una dirección predeterminada
+        if (Vector3Length(cameraForward) < 0.1f) {
+            cameraForward = (Vector3){0.0f, 0.0f, 1.0f};
+        } else {
+            cameraForward = Vector3Normalize(cameraForward);
+        }
+        
+        // Lanzar el cubo del jugador si tiene física
+        if (cube.HasPhysics()) {
+            physicsWorld.LaunchObject(*cube.GetPhysicsBody(), launchVelocity, launchAngle, cameraForward);
+        }
     }
     
     // Update physics world
@@ -351,6 +381,9 @@ void Engine::Render() {
     
     // Render debug UI (also 2D overlay)
     debugUI.Render(cube, otherCubes, uiMessages);
+    
+    // Render physics UI if enabled
+    physicsUI.Render();
     
     // End the drawing frame
     EndDrawing();
