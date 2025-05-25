@@ -6,7 +6,7 @@
 Engine::Engine(int width, int height, const char* windowTitle) 
     : screenWidth(width), screenHeight(height), title(windowTitle), running(false),
       cube({0.0f, 5.0f, 0.0f}, {0.0f, 0.0f, 0.0f}, {2.0f, 2.0f, 2.0f}, RED, true),
-      floor({0.0f, 0.0f, 0.0f}, {0.0f, 0.0f, 0.0f}, {40.0f, 2.0f, 40.0f}, LIGHTGRAY, false),
+      floor({0.0f, -1.0f, 0.0f}, {0.0f, 0.0f, 0.0f}, {40.0f, 2.0f, 40.0f}, LIGHTGRAY, false),
       cameraOffset({4.0f, 4.0f, 4.0f}) {
     
     // Initialize with one additional cube (the blue one)
