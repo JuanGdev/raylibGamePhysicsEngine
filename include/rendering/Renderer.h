@@ -10,6 +10,7 @@ private:
     Color backgroundColor;
     bool showGrid;
     bool showWireframes;
+    bool showAxisGizmos;  // Controlar la visualización de los gizmos de ejes
 
 public:
     Renderer();
@@ -20,6 +21,7 @@ public:
     void SetBackgroundColor(Color color) { backgroundColor = color; }
     void SetShowGrid(bool show) { showGrid = show; }
     void SetShowWireframes(bool show) { showWireframes = show; }
+    void SetShowAxisGizmos(bool show) { showAxisGizmos = show; }
     
     // Rendering methods
     void BeginFrame();

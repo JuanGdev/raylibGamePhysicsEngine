@@ -5,8 +5,8 @@
 
 Engine::Engine(int width, int height, const char* windowTitle) 
     : screenWidth(width), screenHeight(height), title(windowTitle), running(false),
-      cube({0.0f, 5.0f, 0.0f}, {0.0f, 0.0f, 0.0f}, {2.0f, 2.0f, 2.0f}, RED, true),
-      floor({0.0f, -0.05f, 0.0f}, {0.0f, 0.0f, 0.0f}, {40.0f, 0.1f, 40.0f}, LIGHTGRAY, false),
+      cube({0.0f, 5.0f, 0.0f}, {0.0f, 0.0f, 0.0f}, {2.0f, 2.0f, 2.0f}, WHITE, true),
+      floor({0.0f, -0.05f, 0.0f}, {0.0f, 0.0f, 0.0f}, {40.0f, 0.1f, 40.0f}, BLACK, false),
       cameraOffset({4.0f, 4.0f, 4.0f}) {
     
     // Initialize with one additional cube (the blue one)
@@ -31,7 +31,7 @@ bool Engine::Initialize() {
     
     // Setup renderer
     renderer.SetCamera(&camera);
-    renderer.SetBackgroundColor(RAYWHITE);
+    renderer.SetBackgroundColor(GRAY);
     
     // Setup physics for cube
     cube.EnablePhysics(1.0f);
@@ -50,10 +50,10 @@ bool Engine::Initialize() {
     // Setup UI messages
     uiMessages = {
         "Physics Engine 3D - Multiple Cubes Collision Demo",
-        "RED CUBE: WASD: Move | SPACE: Jump | IJKL+UO: Rotate | ZX: Scale",
+        "WHITE CUBE: WASD: Move | SPACE: Jump | IJKL+UO: Rotate | ZX: Scale",
         "OTHER CUBES: Physics only - no manual control",
         "CAMERA: Q/E: Orbit | T/G: Height | C: Color | R: Reset",
-        "Press N to spawn new cube | F1 to toggle debug window"
+        "Press N to spawn new cube | F1 to toggle debug window | A to toggle axis gizmos"
     };
     
     // Initialize debug UI
@@ -88,6 +88,13 @@ void Engine::Update() {
     // Game logic update here
     if (IsKeyPressed(KEY_ESCAPE)) {
         running = false;
+    }
+    
+    // Toggle axis gizmos with the 'A' key
+    if (IsKeyPressed(KEY_P)) {
+        static bool showAxisGizmos = true;  // Empezamos con los gizmos activados
+        showAxisGizmos = !showAxisGizmos;   // Invertir el estado
+        renderer.SetShowAxisGizmos(showAxisGizmos);
     }
     
     // Update physics world
@@ -131,7 +138,7 @@ void Engine::Update() {
     
     // Color change
     if (IsKeyPressed(KEY_C)) {
-        Color colors[] = {RED, GREEN, BLUE, YELLOW, ORANGE, PURPLE, PINK};
+        Color colors[] = {RAYWHITE, GREEN, BLUE, YELLOW, ORANGE, PURPLE, PINK};
         int colorIndex = GetRandomValue(0, 6);
         cube.SetColor(colors[colorIndex]);
     }
@@ -281,7 +288,7 @@ void Engine::Update() {
         cube.SetPosition({0.0f, 5.0f, 0.0f});
         cube.SetRotation({0.0f, 0.0f, 0.0f});
         cube.SetScale({2.0f, 2.0f, 2.0f});
-        cube.SetColor(RED);
+        cube.SetColor(RAYWHITE);
         cube.SetVelocity({0.0f, 0.0f, 0.0f});
         
         // Clear all other cubes and add back the initial blue one

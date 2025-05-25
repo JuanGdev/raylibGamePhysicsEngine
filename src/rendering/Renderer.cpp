@@ -2,7 +2,7 @@
 #include <iostream>
 
 Renderer::Renderer() 
-    : camera(nullptr), backgroundColor(RAYWHITE), showGrid(true), showWireframes(true) {
+    : camera(nullptr), backgroundColor(RAYWHITE), showGrid(true), showWireframes(true), showAxisGizmos(true) {
 }
 
 Renderer::~Renderer() {
@@ -29,6 +29,9 @@ void Renderer::RenderGameObject(const GameObject& obj) {
     obj.Draw();
     if (showWireframes) {
         obj.DrawWireframe();
+    }
+    if (showAxisGizmos) {
+        obj.DrawAxisGizmos();
     }
 }
 

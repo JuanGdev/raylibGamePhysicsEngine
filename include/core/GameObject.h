@@ -65,4 +65,5 @@ public:
     // Rendering
     void Draw() const;
     void DrawWireframe() const;
+    void DrawAxisGizmos() const;  // Método para dibujar los ejes (frente, derecha, arriba)
 };

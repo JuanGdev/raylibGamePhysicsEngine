@@ -237,3 +237,54 @@ void GameObject::DrawWireframe() const {
     
     rlPopMatrix();
 }
+
+void GameObject::DrawAxisGizmos() const {
+    Vector3 currentPos = GetPosition();
+    
+    rlPushMatrix();
+    
+    // Aplicamos transformaciones (posición y rotación) pero no la escala
+    // para tener un tamaño de gizmo consistente independientemente del tamaño del cubo
+    rlTranslatef(currentPos.x, currentPos.y, currentPos.z);
+    rlRotatef(rotation.x, 1, 0, 0);
+    rlRotatef(rotation.y, 0, 1, 0);
+    rlRotatef(rotation.z, 0, 0, 1);
+    
+    // Calculamos la longitud de los ejes basada en el tamaño del cubo pero con un mínimo
+    float axisLength = fmax(0.5f, fmin(scale.x, fmin(scale.y, scale.z)));
+    float startPct = 0.0f;  // Dibujamos desde el centro del cubo (0%)
+    
+    // Dibujamos los tres ejes con colores distintos
+    // Eje X - Derecha - Rojo
+    DrawLine3D(
+        {startPct, 0.0f, 0.0f}, 
+        {axisLength, 0.0f, 0.0f}, 
+        RED
+    );
+    
+    // Eje Y - Arriba - Verde
+    DrawLine3D(
+        {0.0f, startPct, 0.0f}, 
+        {0.0f, axisLength, 0.0f}, 
+        GREEN
+    );
+    
+    // Eje Z - Frente - Azul
+    DrawLine3D(
+        {0.0f, 0.0f, startPct}, 
+        {0.0f, 0.0f, axisLength}, 
+        BLUE
+    );
+    
+    // Añadir pequeñas puntas de flecha para cada eje
+    // Para el eje X (rojo)
+    DrawCube({axisLength, 0.0f, 0.0f}, axisLength * 0.1f, axisLength * 0.1f, axisLength * 0.5f, RED);
+    
+    // Para el eje Y (verde)
+    DrawCube({0.0f, axisLength, 0.0f}, axisLength * 0.1f, axisLength * 0.1f, axisLength * 0.5f, GREEN);
+    
+    // Para el eje Z (azul)
+    DrawCube({0.0f, 0.0f, axisLength}, axisLength * 0.1f, axisLength * 0.1f, axisLength * 0.5f, BLUE);
+    
+    rlPopMatrix();
+}
