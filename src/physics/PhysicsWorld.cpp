@@ -60,7 +60,8 @@ bool PhysicsWorld::CheckCollisionAABB(Vector3 posA, Vector3 sizeA, Vector3 posB,
 }
 
 void PhysicsWorld::ResolveCollision(PhysicsBody& body, const Collider& staticCollider) {
-    Vector3 bodyHalfSize = {1.0f, 1.0f, 1.0f}; // Assuming unit cube for now
+    // Use the actual collider size from the body
+    Vector3 bodyHalfSize = Vector3Scale(body.colliderSize, 0.5f);
     Vector3 colliderHalfSize = Vector3Scale(staticCollider.size, 0.5f);
     
     // Calculate overlap on each axis
@@ -68,19 +69,22 @@ void PhysicsWorld::ResolveCollision(PhysicsBody& body, const Collider& staticCol
     float overlapY = (bodyHalfSize.y + colliderHalfSize.y) - fabs(body.position.y - staticCollider.position.y);
     float overlapZ = (bodyHalfSize.z + colliderHalfSize.z) - fabs(body.position.z - staticCollider.position.z);
     
+    // Add small tolerance to prevent jitter
+    const float tolerance = 0.001f;
+    
     // Find the smallest overlap (the axis of least penetration)
     if (overlapY > 0 && overlapY <= overlapX && overlapY <= overlapZ) {
         // Resolve Y collision (floor/ceiling)
         if (body.position.y > staticCollider.position.y) {
             // Object is above the collider
-            body.position.y = staticCollider.position.y + colliderHalfSize.y + bodyHalfSize.y;
+            body.position.y = staticCollider.position.y + colliderHalfSize.y + bodyHalfSize.y + tolerance;
             body.isGrounded = true;
             if (body.velocity.y < 0) {
                 body.velocity.y = 0; // Stop downward velocity
             }
         } else {
             // Object is below the collider
-            body.position.y = staticCollider.position.y - colliderHalfSize.y - bodyHalfSize.y;
+            body.position.y = staticCollider.position.y - colliderHalfSize.y - bodyHalfSize.y - tolerance;
             if (body.velocity.y > 0) {
                 body.velocity.y = 0; // Stop upward velocity
             }

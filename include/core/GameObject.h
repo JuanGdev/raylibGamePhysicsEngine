@@ -18,6 +18,15 @@ public:
                Vector3 scl = {1.0f, 1.0f, 1.0f},
                Color col = RED,
                bool enablePhysics = false);
+    
+    // Copy constructor and assignment operator
+    GameObject(const GameObject& other);
+    GameObject& operator=(const GameObject& other);
+    
+    // Move constructor and assignment operator
+    GameObject(GameObject&& other) noexcept;
+    GameObject& operator=(GameObject&& other) noexcept;
+    
     ~GameObject();
     
     // Getters

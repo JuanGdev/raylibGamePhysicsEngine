@@ -1,13 +1,17 @@
 #include "core/engine.h"
 #include "raymath.h"
 #include <iostream>
+#include <utility>
 
 Engine::Engine(int width, int height, const char* windowTitle) 
     : screenWidth(width), screenHeight(height), title(windowTitle), running(false),
       cube({0.0f, 5.0f, 0.0f}, {0.0f, 0.0f, 0.0f}, {2.0f, 2.0f, 2.0f}, RED, true),
-      cube2({4.0f, 8.0f, 2.0f}, {0.0f, 0.0f, 0.0f}, {1.5f, 1.5f, 1.5f}, BLUE, true),
       floor({0.0f, 0.0f, 0.0f}, {0.0f, 0.0f, 0.0f}, {40.0f, 2.0f, 40.0f}, LIGHTGRAY, false),
       cameraOffset({4.0f, 4.0f, 4.0f}) {
+    
+    // Initialize with one additional cube (the blue one)
+    GameObject initialCube({4.0f, 8.0f, 2.0f}, {0.0f, 0.0f, 0.0f}, {1.5f, 1.5f, 1.5f}, BLUE, true);
+    otherCubes.push_back(initialCube);
 }
 
 Engine::~Engine() {
@@ -33,20 +37,23 @@ bool Engine::Initialize() {
     cube.EnablePhysics(1.0f);
     cube.EnableCollider({2.0f, 2.0f, 2.0f});
     
-    // Setup physics for second cube
-    cube2.EnablePhysics(0.8f);  // Slightly lighter
-    cube2.EnableCollider({1.5f, 1.5f, 1.5f});
+    // Setup physics for all other cubes
+    for (auto& otherCube : otherCubes) {
+        otherCube.EnablePhysics(0.8f);  // Slightly lighter
+        Vector3 cubeScale = otherCube.GetScale();
+        otherCube.EnableCollider(cubeScale);
+    }
     
     // Setup floor collider
     floor.EnableCollider({40.0f, 2.0f, 40.0f});
     
     // Setup UI messages
     uiMessages = {
-        "Physics Engine 3D - Two Cubes Collision Demo",
+        "Physics Engine 3D - Multiple Cubes Collision Demo",
         "RED CUBE: WASD: Move | SPACE: Jump | IJKL+UO: Rotate | ZX: Scale",
-        "BLUE CUBE: Arrow Keys: Move | ENTER: Jump",
+        "OTHER CUBES: Physics only - no manual control",
         "CAMERA: Q/E: Orbit | T/G: Height | C: Color | R: Reset",
-        "Press F1 to toggle debug window"
+        "Press N to spawn new cube | F1 to toggle debug window"
     };
     
     // Initialize debug UI
@@ -99,24 +106,14 @@ void Engine::Update() {
         cube.AddForce(movement);
     }
     
-    // Second cube movement controls (Arrow keys)
-    Vector3 movement2 = {0.0f, 0.0f, 0.0f};
-    
-    if (IsKeyDown(KEY_UP)) movement2.z -= moveSpeed;
-    if (IsKeyDown(KEY_DOWN)) movement2.z += moveSpeed;
-    if (IsKeyDown(KEY_LEFT)) movement2.x -= moveSpeed;
-    if (IsKeyDown(KEY_RIGHT)) movement2.x += moveSpeed;
-    
-    if (Vector3Length(movement2) > 0) {
-        cube2.AddForce(movement2);
-    }
-    
-    // Jump controls
+    // Jump controls (only for player cube)
     if (IsKeyPressed(KEY_SPACE)) {
-        cube.Jump(8.0f); // Jump force for cube 1
+        cube.Jump(8.0f); // Jump force for player cube
     }
-    if (IsKeyPressed(KEY_ENTER)) {
-        cube2.Jump(8.0f); // Jump force for cube 2
+    
+    // Spawn new cube control
+    if (IsKeyPressed(KEY_N)) {
+        SpawnNewCube();
     }
     
     // Cube rotation controls
@@ -154,25 +151,50 @@ void Engine::Update() {
         }
     }
     
-    if (cube2.HasPhysics()) {
-        // Update physics for second cube
-        physicsWorld.UpdatePhysicsBody(*cube2.GetPhysicsBody());
-        cube2.UpdateFromPhysics();
+    // Update physics for player cube
+    if (cube.HasPhysics()) {
+        physicsWorld.UpdatePhysicsBody(*cube.GetPhysicsBody());
+        cube.UpdateFromPhysics();
         
         // Check collision with floor
-        if (cube2.GetCollider() && floor.GetCollider()) {
-            if (physicsWorld.CheckCollision(*cube2.GetCollider(), *floor.GetCollider())) {
-                physicsWorld.ResolveCollision(*cube2.GetPhysicsBody(), *floor.GetCollider());
-                cube2.UpdateFromPhysics();
+        if (cube.GetCollider() && floor.GetCollider()) {
+            if (physicsWorld.CheckCollision(*cube.GetCollider(), *floor.GetCollider())) {
+                physicsWorld.ResolveCollision(*cube.GetPhysicsBody(), *floor.GetCollider());
+                cube.UpdateFromPhysics();
             }
         }
-        
-        // Check collision between cubes
-        if (cube.GetCollider() && cube2.GetCollider()) {
-            if (physicsWorld.CheckCollision(*cube.GetCollider(), *cube2.GetCollider())) {
-                // For cube-to-cube collision, we need a more sophisticated approach
-                // For now, let's implement a simple elastic collision
-                // ResolveCubeToCubeCollision(cube, cube2); // TODO: Implement this function
+    }
+    
+    // Update physics for all other cubes
+    for (auto& otherCube : otherCubes) {
+        if (otherCube.HasPhysics()) {
+            physicsWorld.UpdatePhysicsBody(*otherCube.GetPhysicsBody());
+            otherCube.UpdateFromPhysics();
+            
+            // Check collision with floor
+            if (otherCube.GetCollider() && floor.GetCollider()) {
+                if (physicsWorld.CheckCollision(*otherCube.GetCollider(), *floor.GetCollider())) {
+                    physicsWorld.ResolveCollision(*otherCube.GetPhysicsBody(), *floor.GetCollider());
+                    otherCube.UpdateFromPhysics();
+                }
+            }
+            
+            // Check collision with player cube
+            if (cube.GetCollider() && otherCube.GetCollider()) {
+                if (physicsWorld.CheckCollision(*cube.GetCollider(), *otherCube.GetCollider())) {
+                    ResolveCubeToCubeCollision(cube, otherCube);
+                }
+            }
+        }
+    }
+    
+    // Check collisions between other cubes
+    for (size_t i = 0; i < otherCubes.size(); i++) {
+        for (size_t j = i + 1; j < otherCubes.size(); j++) {
+            if (otherCubes[i].GetCollider() && otherCubes[j].GetCollider()) {
+                if (physicsWorld.CheckCollision(*otherCubes[i].GetCollider(), *otherCubes[j].GetCollider())) {
+                    ResolveCubeToCubeCollision(otherCubes[i], otherCubes[j]);
+                }
             }
         }
     }
@@ -215,19 +237,19 @@ void Engine::Update() {
 
     // Reset cubes
     if (IsKeyPressed(KEY_R)) {
-        // Reset first cube (red)
+        // Reset player cube (red)
         cube.SetPosition({0.0f, 5.0f, 0.0f});
         cube.SetRotation({0.0f, 0.0f, 0.0f});
         cube.SetScale({2.0f, 2.0f, 2.0f});
         cube.SetColor(RED);
         cube.SetVelocity({0.0f, 0.0f, 0.0f});
         
-        // Reset second cube (blue)
-        cube2.SetPosition({4.0f, 8.0f, 2.0f});
-        cube2.SetRotation({0.0f, 0.0f, 0.0f});
-        cube2.SetScale({1.5f, 1.5f, 1.5f});
-        cube2.SetColor(BLUE);
-        cube2.SetVelocity({0.0f, 0.0f, 0.0f});
+        // Clear all other cubes and add back the initial blue one
+        otherCubes.clear();
+        GameObject initialCube({4.0f, 8.0f, 2.0f}, {0.0f, 0.0f, 0.0f}, {1.5f, 1.5f, 1.5f}, BLUE, true);
+        initialCube.EnablePhysics(0.8f);
+        initialCube.EnableCollider(initialCube.GetScale());
+        otherCubes.push_back(initialCube);
         
         cameraOffset = {4.0f, 4.0f, 4.0f}; // Reset camera offset
         Initialize3D();
@@ -244,7 +266,12 @@ void Engine::Render() {
     
     // Render game objects
     renderer.RenderGameObject(cube);
-    renderer.RenderGameObject(cube2);
+    
+    // Render all other cubes
+    for (const auto& otherCube : otherCubes) {
+        renderer.RenderGameObject(otherCube);
+    }
+    
     renderer.RenderFloor(floor.GetPosition(), {40.0f, 0.1f, 40.0f}, GRAY);
     
     // Render debug colliders if available
@@ -252,9 +279,13 @@ void Engine::Render() {
         Vector3 colliderSize = cube.GetScale(); // Use scale as collider size
         renderer.RenderCollider(cube.GetPosition(), colliderSize, GREEN);
     }
-    if (cube2.GetCollider()) {
-        Vector3 colliderSize2 = cube2.GetScale(); // Use scale as collider size
-        renderer.RenderCollider(cube2.GetPosition(), colliderSize2, YELLOW);
+    
+    // Render colliders for other cubes
+    for (const auto& otherCube : otherCubes) {
+        if (otherCube.GetCollider()) {
+            Vector3 colliderSize = otherCube.GetScale();
+            renderer.RenderCollider(otherCube.GetPosition(), colliderSize, YELLOW);
+        }
     }
     if (floor.GetCollider()) {
         Vector3 floorColliderSize = {40.0f, 0.1f, 40.0f}; // Floor size
@@ -272,7 +303,7 @@ void Engine::Render() {
     DrawText("Press F1 for debug info | ESC to exit", 10, 35, 14, GRAY);
     
     // Render debug UI (also 2D overlay)
-    debugUI.Render(cube, cube2, uiMessages);
+    debugUI.Render(cube, otherCubes, uiMessages);
     
     // End the drawing frame
     EndDrawing();
@@ -282,5 +313,83 @@ void Engine::Shutdown() {
     if (IsWindowReady()) {
         CloseWindow();
         std::cout << "Engine shutdown complete" << std::endl;
+    }
+}
+
+void Engine::SpawnNewCube() {
+    // Random position around the map
+    float x = GetRandomValue(-15, 15);
+    float z = GetRandomValue(-15, 15);
+    float y = GetRandomValue(5, 15);  // Spawn above ground
+    
+    // Random scale
+    float scale = GetRandomValue(100, 250) / 100.0f;  // 1.0 to 2.5
+    
+    // Random color
+    Color colors[] = {BLUE, GREEN, YELLOW, ORANGE, PURPLE, PINK, MAGENTA, LIME, GOLD, VIOLET};
+    Color randomColor = colors[GetRandomValue(0, 9)];
+    
+    // Create new cube with physics enabled from the start to avoid copy issues
+    GameObject newCube(Vector3{x, y, z}, Vector3{0.0f, 0.0f, 0.0f}, Vector3{scale, scale, scale}, randomColor, true);
+    newCube.GetPhysicsBody()->mass = 0.8f;  // Set mass after creation
+    newCube.EnableCollider(newCube.GetScale());
+    
+    // Add to vector using move semantics
+    otherCubes.push_back(std::move(newCube));
+    
+    std::cout << "Spawned new cube at (" << x << ", " << y << ", " << z << ") with scale " << scale << std::endl;
+}
+
+void Engine::ResolveCubeToCubeCollision(GameObject& cube1, GameObject& cube2) {
+    if (!cube1.HasPhysics() || !cube2.HasPhysics()) return;
+    
+    PhysicsBody* body1 = cube1.GetPhysicsBody();
+    PhysicsBody* body2 = cube2.GetPhysicsBody();
+    
+    if (!body1 || !body2) return;
+    
+    // Calculate collision normal (direction from cube1 to cube2)
+    Vector3 normal = Vector3Subtract(body2->position, body1->position);
+    float distance = Vector3Length(normal);
+    
+    if (distance > 0) {
+        normal = Vector3Scale(normal, 1.0f / distance);  // Normalize
+        
+        // Calculate relative velocity
+        Vector3 relativeVelocity = Vector3Subtract(body2->velocity, body1->velocity);
+        
+        // Calculate relative velocity along normal
+        float velocityAlongNormal = Vector3DotProduct(relativeVelocity, normal);
+        
+        // Do not resolve if velocities are separating
+        if (velocityAlongNormal > 0) return;
+        
+        // Calculate restitution (bounciness)
+        float restitution = 0.6f;
+        
+        // Calculate impulse scalar
+        float impulseScalar = -(1 + restitution) * velocityAlongNormal;
+        impulseScalar /= (1.0f / body1->mass + 1.0f / body2->mass);
+        
+        // Apply impulse
+        Vector3 impulse = Vector3Scale(normal, impulseScalar);
+        
+        body1->velocity = Vector3Subtract(body1->velocity, Vector3Scale(impulse, 1.0f / body1->mass));
+        body2->velocity = Vector3Add(body2->velocity, Vector3Scale(impulse, 1.0f / body2->mass));
+        
+        // Separate the cubes to prevent overlap
+        Vector3 halfSize1 = Vector3Scale(body1->colliderSize, 0.5f);
+        Vector3 halfSize2 = Vector3Scale(body2->colliderSize, 0.5f);
+        float minSeparation = Vector3Length(halfSize1) + Vector3Length(halfSize2);
+        
+        if (distance < minSeparation) {
+            Vector3 separation = Vector3Scale(normal, (minSeparation - distance + 0.01f) * 0.5f);
+            body1->position = Vector3Subtract(body1->position, separation);
+            body2->position = Vector3Add(body2->position, separation);
+        }
+        
+        // Update GameObjects from physics
+        cube1.UpdateFromPhysics();
+        cube2.UpdateFromPhysics();
     }
 }

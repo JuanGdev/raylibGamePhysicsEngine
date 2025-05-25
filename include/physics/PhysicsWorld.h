@@ -5,13 +5,14 @@ struct PhysicsBody {
     Vector3 position;
     Vector3 velocity;
     Vector3 acceleration;
+    Vector3 colliderSize;  // Size of the collider for this body
     float mass;
     bool isGrounded;
     bool useGravity;
     
-    PhysicsBody(Vector3 pos = {0.0f, 0.0f, 0.0f}, float m = 1.0f)
+    PhysicsBody(Vector3 pos = {0.0f, 0.0f, 0.0f}, float m = 1.0f, Vector3 size = {1.0f, 1.0f, 1.0f})
         : position(pos), velocity({0.0f, 0.0f, 0.0f}), acceleration({0.0f, 0.0f, 0.0f}), 
-          mass(m), isGrounded(false), useGravity(true) {}
+          colliderSize(size), mass(m), isGrounded(false), useGravity(true) {}
 };
 
 struct Collider {

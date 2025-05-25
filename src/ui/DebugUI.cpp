@@ -36,7 +36,7 @@ void DebugUI::Update() {
     }
 }
 
-void DebugUI::Render(const GameObject& cube1, const GameObject& cube2, const std::vector<std::string>& messages) {
+void DebugUI::Render(const GameObject& playerCube, const std::vector<GameObject>& otherCubes, const std::vector<std::string>& messages) {
     if (!debugWindowOpen) return;
     
     // Draw debug window background with fully opaque colors
@@ -71,16 +71,13 @@ void DebugUI::Render(const GameObject& cube1, const GameObject& cube2, const std
     
     contentY += messages.size() * lineHeight + 10;
     
-    // Draw physics debug info
-    Vector3 cubePos = cube1.GetPosition();
-    Vector3 cubeVel = cube1.GetVelocity();
-    Vector3 cubeScale = cube1.GetScale();
-    Vector3 cube2Pos = cube2.GetPosition();
-    Vector3 cube2Vel = cube2.GetVelocity();
-    Vector3 cube2Scale = cube2.GetScale();
+    // Draw physics debug info for player cube
+    Vector3 cubePos = playerCube.GetPosition();
+    Vector3 cubeVel = playerCube.GetVelocity();
+    Vector3 cubeScale = playerCube.GetScale();
     
-    // RED Cube info
-    DrawText("=== RED CUBE ===", (int)debugWindowPosition.x + 10, (int)contentY, 14, (Color){255, 100, 100, 255});
+    // Player Cube info
+    DrawText("=== PLAYER CUBE (RED) ===", (int)debugWindowPosition.x + 10, (int)contentY, 14, (Color){255, 100, 100, 255});
     contentY += lineHeight;
     
     DrawText(TextFormat("Pos: (%.1f, %.1f, %.1f)", cubePos.x, cubePos.y, cubePos.z), 
@@ -95,8 +92,8 @@ void DebugUI::Render(const GameObject& cube1, const GameObject& cube2, const std
              (int)debugWindowPosition.x + 10, (int)contentY, textSize, WHITE);
     contentY += lineHeight;
     
-    if (cube1.HasPhysics() && cube1.GetPhysicsBody()) {
-        bool grounded = cube1.GetPhysicsBody()->isGrounded;
+    if (playerCube.HasPhysics() && playerCube.GetPhysicsBody()) {
+        bool grounded = playerCube.GetPhysicsBody()->isGrounded;
         DrawText(TextFormat("Grounded: %s", grounded ? "YES" : "NO"), 
                 (int)debugWindowPosition.x + 10, (int)contentY, textSize, 
                 grounded ? (Color){100, 255, 100, 255} : (Color){255, 100, 100, 255});
@@ -105,27 +102,43 @@ void DebugUI::Render(const GameObject& cube1, const GameObject& cube2, const std
     
     contentY += 10;
     
-    // BLUE Cube info
-    DrawText("=== BLUE CUBE ===", (int)debugWindowPosition.x + 10, (int)contentY, 14, (Color){100, 150, 255, 255});
+    // Other cubes info
+    DrawText(TextFormat("=== OTHER CUBES (%d) ===", (int)otherCubes.size()), 
+             (int)debugWindowPosition.x + 10, (int)contentY, 14, (Color){100, 150, 255, 255});
     contentY += lineHeight;
     
-    DrawText(TextFormat("Pos: (%.1f, %.1f, %.1f)", cube2Pos.x, cube2Pos.y, cube2Pos.z), 
-             (int)debugWindowPosition.x + 10, (int)contentY, textSize, WHITE);
-    contentY += lineHeight;
+    // Show info for up to 3 other cubes to avoid overcrowding
+    int maxCubesToShow = 3;
+    for (int i = 0; i < (int)otherCubes.size() && i < maxCubesToShow; i++) {
+        const GameObject& cube = otherCubes[i];
+        Vector3 pos = cube.GetPosition();
+        Vector3 vel = cube.GetVelocity();
+        Vector3 scale = cube.GetScale();
+        
+        DrawText(TextFormat("Cube %d:", i + 1), (int)debugWindowPosition.x + 10, (int)contentY, 12, YELLOW);
+        contentY += lineHeight;
+        
+        DrawText(TextFormat("  Pos: (%.1f, %.1f, %.1f)", pos.x, pos.y, pos.z), 
+                 (int)debugWindowPosition.x + 10, (int)contentY, 10, WHITE);
+        contentY += 14;
+        
+        DrawText(TextFormat("  Vel: (%.1f, %.1f, %.1f)", vel.x, vel.y, vel.z), 
+                 (int)debugWindowPosition.x + 10, (int)contentY, 10, WHITE);
+        contentY += 14;
+        
+        if (cube.HasPhysics() && cube.GetPhysicsBody()) {
+            bool grounded = cube.GetPhysicsBody()->isGrounded;
+            DrawText(TextFormat("  Grounded: %s", grounded ? "YES" : "NO"), 
+                    (int)debugWindowPosition.x + 10, (int)contentY, 10, 
+                    grounded ? (Color){100, 255, 100, 255} : (Color){255, 100, 100, 255});
+            contentY += 14;
+        }
+        contentY += 5;
+    }
     
-    DrawText(TextFormat("Vel: (%.1f, %.1f, %.1f)", cube2Vel.x, cube2Vel.y, cube2Vel.z), 
-             (int)debugWindowPosition.x + 10, (int)contentY, textSize, WHITE);
-    contentY += lineHeight;
-    
-    DrawText(TextFormat("Scale: (%.2f, %.2f, %.2f)", cube2Scale.x, cube2Scale.y, cube2Scale.z), 
-             (int)debugWindowPosition.x + 10, (int)contentY, textSize, WHITE);
-    contentY += lineHeight;
-    
-    if (cube2.HasPhysics() && cube2.GetPhysicsBody()) {
-        bool grounded2 = cube2.GetPhysicsBody()->isGrounded;
-        DrawText(TextFormat("Grounded: %s", grounded2 ? "YES" : "NO"), 
-                (int)debugWindowPosition.x + 10, (int)contentY, textSize, 
-                grounded2 ? (Color){100, 255, 100, 255} : (Color){100, 150, 255, 255});
+    if ((int)otherCubes.size() > maxCubesToShow) {
+        DrawText(TextFormat("... and %d more cubes", (int)otherCubes.size() - maxCubesToShow), 
+                 (int)debugWindowPosition.x + 10, (int)contentY, 10, GRAY);
         contentY += lineHeight;
     }
     
@@ -140,6 +153,10 @@ void DebugUI::Render(const GameObject& cube1, const GameObject& cube2, const std
     contentY += lineHeight;
     
     DrawText(TextFormat("Frame Time: %.2f ms", GetFrameTime() * 1000), 
+             (int)debugWindowPosition.x + 10, (int)contentY, textSize, WHITE);
+    contentY += lineHeight;
+    
+    DrawText(TextFormat("Total Cubes: %d", (int)otherCubes.size() + 1), 
              (int)debugWindowPosition.x + 10, (int)contentY, textSize, WHITE);
     contentY += lineHeight;
     

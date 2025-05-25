@@ -21,8 +21,8 @@ private:
     DebugUI debugUI;
     
     // Game objects
-    GameObject cube;
-    GameObject cube2;
+    GameObject cube;        // Red cube - player controlled
+    std::vector<GameObject> otherCubes;  // Other cubes - physics only
     GameObject floor;
     Vector3 cameraOffset;
     
@@ -43,4 +43,6 @@ private:
     void Update();
     void Render();
     void Initialize3D();
+    void SpawnNewCube();
+    void ResolveCubeToCubeCollision(GameObject& cube1, GameObject& cube2);
 };

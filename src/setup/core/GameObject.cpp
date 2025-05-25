@@ -15,6 +15,90 @@ GameObject::~GameObject() {
     DisableCollider();
 }
 
+GameObject::GameObject(const GameObject& other)
+    : position(other.position), rotation(other.rotation), scale(other.scale), 
+      color(other.color), physicsBody(nullptr), collider(nullptr), hasPhysics(false) {
+    
+    // Deep copy physics if enabled
+    if (other.hasPhysics && other.physicsBody) {
+        EnablePhysics(other.physicsBody->mass);
+        physicsBody->velocity = other.physicsBody->velocity;
+        physicsBody->acceleration = other.physicsBody->acceleration;
+        physicsBody->isGrounded = other.physicsBody->isGrounded;
+        physicsBody->useGravity = other.physicsBody->useGravity;
+    }
+    
+    // Deep copy collider if enabled
+    if (other.collider) {
+        EnableCollider(other.collider->size);
+    }
+}
+
+GameObject& GameObject::operator=(const GameObject& other) {
+    if (this != &other) {
+        // Clean up existing resources
+        DisablePhysics();
+        DisableCollider();
+        
+        // Copy basic properties
+        position = other.position;
+        rotation = other.rotation;
+        scale = other.scale;
+        color = other.color;
+        
+        // Deep copy physics if enabled
+        if (other.hasPhysics && other.physicsBody) {
+            EnablePhysics(other.physicsBody->mass);
+            physicsBody->velocity = other.physicsBody->velocity;
+            physicsBody->acceleration = other.physicsBody->acceleration;
+            physicsBody->isGrounded = other.physicsBody->isGrounded;
+            physicsBody->useGravity = other.physicsBody->useGravity;
+        }
+        
+        // Deep copy collider if enabled
+        if (other.collider) {
+            EnableCollider(other.collider->size);
+        }
+    }
+    return *this;
+}
+
+GameObject::GameObject(GameObject&& other) noexcept
+    : position(other.position), rotation(other.rotation), scale(other.scale), 
+      color(other.color), physicsBody(other.physicsBody), collider(other.collider), 
+      hasPhysics(other.hasPhysics) {
+    
+    // Transfer ownership - nullify the source object's pointers
+    other.physicsBody = nullptr;
+    other.collider = nullptr;
+    other.hasPhysics = false;
+}
+
+GameObject& GameObject::operator=(GameObject&& other) noexcept {
+    if (this != &other) {
+        // Clean up existing resources
+        DisablePhysics();
+        DisableCollider();
+        
+        // Move basic properties
+        position = other.position;
+        rotation = other.rotation;
+        scale = other.scale;
+        color = other.color;
+        
+        // Transfer ownership
+        physicsBody = other.physicsBody;
+        collider = other.collider;
+        hasPhysics = other.hasPhysics;
+        
+        // Nullify source object's pointers
+        other.physicsBody = nullptr;
+        other.collider = nullptr;
+        other.hasPhysics = false;
+    }
+    return *this;
+}
+
 Vector3 GameObject::GetPosition() const {
     if (hasPhysics && physicsBody) {
         return physicsBody->position;
@@ -43,11 +127,21 @@ void GameObject::Rotate(Vector3 rotationOffset) {
 
 void GameObject::Scale(Vector3 scaleOffset) {
     scale = Vector3Add(scale, scaleOffset);
+    
+    // Update physics body collider size if physics is enabled
+    if (hasPhysics && physicsBody) {
+        physicsBody->colliderSize = scale;
+    }
+    
+    // Update collider size if collider exists
+    if (collider) {
+        collider->size = scale;
+    }
 }
 
 void GameObject::EnablePhysics(float mass) {
     if (!hasPhysics) {
-        physicsBody = new PhysicsBody(position, mass);
+        physicsBody = new PhysicsBody(position, mass, scale);  // Pass scale as collider size
         hasPhysics = true;
     }
 }

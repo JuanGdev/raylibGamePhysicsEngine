@@ -17,7 +17,7 @@ public:
     
     void Initialize();
     void Update();
-    void Render(const GameObject& cube1, const GameObject& cube2, const std::vector<std::string>& messages);
+    void Render(const GameObject& playerCube, const std::vector<GameObject>& otherCubes, const std::vector<std::string>& messages);
     void Shutdown();
     
     bool IsOpen() const { return debugWindowOpen; }
