@@ -2,7 +2,7 @@
 #include <iostream>
 
 DebugUI::DebugUI(int width, int height) 
-    : debugWidth(width), debugHeight(height), debugWindowOpen(false), 
+    : debugWidth(width+250), debugHeight(height), debugWindowOpen(false), 
       debugWindowPosition({50.0f, 50.0f}) {
 }
 
@@ -11,8 +11,6 @@ DebugUI::~DebugUI() {
 }
 
 void DebugUI::Initialize() {
-    // The debug UI will be rendered as an overlay, not a separate window
-    // Raylib doesn't support multiple windows natively, so we'll use a panel approach
     debugWindowOpen = false; // Start closed to avoid initial flickering
     std::cout << "Debug UI initialized" << std::endl;
 }
@@ -77,7 +75,7 @@ void DebugUI::Render(const GameObject& playerCube, const std::vector<GameObject>
     Vector3 cubeScale = playerCube.GetScale();
     
     // Player Cube info
-    DrawText("=== PLAYER CUBE (RED) ===", (int)debugWindowPosition.x + 10, (int)contentY, 14, (Color){255, 100, 100, 255});
+    DrawText("=== PLAYER CUBE  ===", (int)debugWindowPosition.x + 10, (int)contentY, 14, (Color){255, 100, 100, 255});
     contentY += lineHeight;
     
     DrawText(TextFormat("Pos: (%.1f, %.1f, %.1f)", cubePos.x, cubePos.y, cubePos.z), 

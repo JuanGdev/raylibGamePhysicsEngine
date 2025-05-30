@@ -55,7 +55,7 @@ bool Engine::Initialize() {
         "WHITE CUBE: WASD: Move | SPACE: Jump | IJKL+UO: Rotate | ZX: Scale",
         "OTHER CUBES: Physics only - no manual control",
         "CAMERA: Q/E: Orbit | T/G: Height | C: Color | R: Reset",
-        "Press N to spawn new cube | P to launch cube | F1 for debug | F2 for physics panel | A to toggle gizmos"
+        "Press N to spawn new cube | P to launch cube | F1 for debug | F2 for physics panel | F3 to toggle gizmos"
     };
     
     // Initialize debug UI and physics UI
@@ -463,18 +463,16 @@ void Engine::RenderMenu() {
              Fade(RAYWHITE, titleOpacity));
     
     // Draw pulsing prompt
-    DrawText(prompt, promptX, promptY, menuPromptFontSize, 
+    DrawText(prompt, promptX + 30, promptY, menuPromptFontSize, 
              Fade(GOLD, promptOpacity));
     
-    // Draw version info
-    DrawText("v1.0", 10, screenHeight - 30, 20, Fade(LIGHTGRAY, titleOpacity * 0.8f));
-    
+    DrawText("Maded by: Jorge Solis, Marco Castillo and Juan Aguilera", promptX-70, promptY + 250, menuPromptFontSize-5, WHITE);
     
     DrawTexture(textLogo, titleX + 70, titleY -400,Fade(WHITE, titleOpacity * 0.8f));
 
 
     // Draw footer
-    DrawText("Made with Raylib", screenWidth - 150, screenHeight - 50, 
+    DrawText("Made with Raylib", screenWidth - 150, screenHeight - 60, 
              16, Fade(LIGHTGRAY, titleOpacity * 0.8f));
 }
 
