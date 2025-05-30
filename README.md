@@ -1,6 +1,8 @@
 # Documentación del Motor de Física 3D
 
 ![coverGPE](https://github.com/user-attachments/assets/7104b1cc-6db5-4ddf-b011-aa855b5a3e98)
+![image](https://github.com/user-attachments/assets/c2f4039e-a0cc-4146-a9c9-466e8dd9a430)
+
 
 
 ## Índice
