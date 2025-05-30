@@ -1,5 +1,8 @@
 # Documentación del Motor de Física 3D
 
+![coverGPE](https://github.com/user-attachments/assets/7104b1cc-6db5-4ddf-b011-aa855b5a3e98)
+
+
 ## Índice
 1. [Introducción](#introducción)
 2. [Arquitectura del Sistema](#arquitectura-del-sistema)
