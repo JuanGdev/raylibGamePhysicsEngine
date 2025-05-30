@@ -8,12 +8,27 @@
 #include <vector>
 #include <string>
 
+// Define game states
+enum class GameState {
+    MENU,
+    GAME
+};
+
 class Engine {
 private:
     int screenWidth;
     int screenHeight;
     const char* title;
     bool running;
+    GameState currentState;
+
+    // Menu properties
+    float menuTitleFontSize;
+    float menuPromptFontSize;
+    float titleOpacity;
+    float promptOpacity;
+    bool fadeIn;
+    float fadeSpeed;
 
     // Core systems
     Camera3D camera;
@@ -47,4 +62,9 @@ private:
     void Initialize3D();
     void SpawnNewCube();
     void ResolveCubeToCubeCollision(GameObject& cube1, GameObject& cube2);
+    
+    // Menu methods
+    void UpdateMenu();
+    void RenderMenu();
+    void SwitchToGameState();
 };

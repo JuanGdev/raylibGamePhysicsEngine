@@ -29,4 +29,4 @@ add_executable(${PROJECT_NAME} ${SOURCES})
 target_link_libraries(${PROJECT_NAME} raylib)
 
 # Copy assets to build directory
-#file(COPY assets DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
+file(COPY assets DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
